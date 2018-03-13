@@ -6,36 +6,72 @@
 using namespace std;
 
 #define  LOGI(...)  printf(__VA_ARGS__)
-const unsigned WIDTH = 1024;
-const unsigned HEIGHT = 1024;
+const unsigned WIDTH = 768;
+const unsigned HEIGHT = 768;
+
+const unsigned RATIO = 3.0; // twice as wide
+
+void ident_mat(float mat[]);
+void scale_mat(float mat[], float width, float height);
+void trans_mat(float mat[], float x, float y);
+void print_mat(float vec[]);
+void mult_mat(float l[], float r[], float n[]);
 
 void setup();
 
 static GLuint spriteShader;
+static GLuint MV;
+static GLuint color;
 
 static const char vert_shad[] =
 R"(
 attribute vec4 pos;
+uniform mat4 MV;
+varying float y;
 void main() {
-  gl_Position = pos;
+  gl_Position = MV * pos;
+  y = pos.y;
 }
 )";
 
 static const char frag_shad[] =
 R"(
+uniform vec4 col;
+varying float y;
 void main() {
-  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+  gl_FragColor = vec4(col.r, col.g, abs(y), col.a);
 }
 )";
 
 void drawSprites() {
+  float modelview[16];
+  float orthoview[16];
+  float transview[16];
+  ident_mat(modelview);
+  float s_ratio = WIDTH / (float)HEIGHT;
+  float new_ratio = RATIO / s_ratio;
+  scale_mat(modelview, 1.0, 1.0 / new_ratio);
+  glUniform4f(color, 0.0, 1.0, 0.0, 1.0);
+  glUniformMatrix4fv(MV, 1, GL_FALSE, modelview);
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+  ident_mat(modelview);
+  glUniform4f(color, 1.0, 1.0, 0.0, 1.0);
+  float length = 0.1;
+  trans_mat(modelview, -1 + 0.3, -1 + length*new_ratio);
+  scale_mat(modelview, length, length * new_ratio);
+  ident_mat(orthoview);
+  scale_mat(orthoview, 1.0, 1.0 / new_ratio);
+  mult_mat(orthoview, modelview, transview);
+  glUniformMatrix4fv(MV, 1, GL_FALSE, transview);
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
 void drawFrame() {
   glViewport(0, 0, (int) WIDTH, HEIGHT);
-  glClearColor(1.0, 0.0, 1.0, 1.0);
+  glClearColor(0.0, 0.0, 1.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
+
   drawSprites();
   glFlush();
 }
@@ -144,11 +180,53 @@ void setup() {
 
   spriteShader = loadProgram(vert_shad, frag_shad);
   GLuint position = glGetAttribLocation(spriteShader, "pos");
+  MV = glGetUniformLocation(spriteShader, "MV");
+  color = glGetUniformLocation(spriteShader, "col");
   GLint comp = 2;
   GLsizei stride = 2;
   glVertexAttribPointer(position, comp, GL_FLOAT, GL_FALSE, (comp + stride)*sizeof(GLfloat), 0);
   glEnableVertexAttribArray(position);
   glUseProgram(spriteShader);
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void ident_mat(float mat[]) {
+  for (int i = 0; i < 16; i++) {
+    mat[i] = 0.0;
+    if ((i % 5) == 0)
+      mat[i] = 1.0;
+  }
+}
+
+void mult_mat(float l[], float r[], float n[]) {
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      n[i + j*4] = l[i] * r[j*4] +
+        l[i+4] * r[j*4+1] + l[i+8] * r[j*4+2] + l[i+12] * r[j*4+3];
+    }
+  }
+}
+
+void scale_mat(float mat[], float width, float height) {
+  mat[0] *= width;
+  mat[5] *= height;
+}
+
+void trans_mat(float mat[], float x, float y) {
+  mat[12] += x;
+  mat[13] += y;
+}
+
+void print_mat(float vec[]) {
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      printf("%f\t", vec[i + j*4]);
+    }
+    printf("\n");
+  }
+  printf("\n");
 }
 
 @interface GameView: NSOpenGLView {
