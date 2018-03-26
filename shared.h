@@ -1,3 +1,4 @@
+#include <sys/time.h>
 
 #define  LOGI(...)  printf(__VA_ARGS__)
 const unsigned WIDTH = 768;
@@ -70,6 +71,25 @@ void drawFrame(int width, int height) {
 
     drawSprites();
     glFlush();
+
+    static unsigned fps_accum = 0;
+    static unsigned fps_counter = 0;
+    static unsigned old_fps = 0;
+    static unsigned fps = 0;
+    static struct timeval tval_before, tval_after, diff;
+
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &diff);
+    gettimeofday(&tval_before, NULL);
+    fps_counter++;
+    fps_accum += diff.tv_usec / 1000.0f;
+    if (fps_accum >= 1000) {
+      old_fps = fps_counter;
+      fps_accum = fps_accum - 1000;
+      fps_counter = 0;
+    }
+    printf("Fps %d\n", fps);
+    fps = old_fps;
 }
 
 static void checkGlError(const char* op) {
