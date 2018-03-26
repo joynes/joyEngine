@@ -11,8 +11,6 @@ void trans_mat(float mat[], float x, float y);
 void print_mat(float vec[]);
 void mult_mat(float l[], float r[], float n[]);
 
-void setup();
-
 static GLuint spriteShader;
 static GLuint MV;
 static GLuint color;
@@ -30,6 +28,7 @@ void main() {\
 
 static const char frag_shad[] =
 "\
+precision highp float;\
 uniform vec4 col;\
 varying float y;\
 void main() {\
@@ -151,7 +150,7 @@ GLuint loadProgram(const char *vertexShader, const char *fragmentShader) {
     return programId;
 }
 
-void setup() {
+void setup(int frag_offset) {
     const char *glsl_header = "";
     const char *vertex_header = glsl_header;
 
@@ -175,7 +174,7 @@ void setup() {
     glBufferData(GL_ARRAY_BUFFER, VERTICES * (QUAD_TEX_SIZE + QUAD_TEX_SIZE) * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
     checkGlError("bind buffer");
 
-    spriteShader = loadProgram(vert_shad, frag_shad);
+    spriteShader = loadProgram(vert_shad, frag_shad + frag_offset);
     GLuint position = glGetAttribLocation(spriteShader, "pos");
     MV = glGetUniformLocation(spriteShader, "MV");
     color = glGetUniformLocation(spriteShader, "col");

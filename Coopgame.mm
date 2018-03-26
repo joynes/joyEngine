@@ -29,7 +29,7 @@
 
   // Activate the display link
   CVDisplayLinkStart(displayLink);
-  setup();
+  setup(22); // frag offset
 }
 
 - (NSOpenGLPixelFormat*)createPixelFormat
