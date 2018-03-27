@@ -48,7 +48,7 @@ void drawSprites(float posx, float posy) {
     scale_mat(modelview, 1.0, 1.0 / new_ratio);
     glUniform4f(color, 0.0, 1.0, 0.0, 1.0);
     glUniformMatrix4fv(MV, 1, GL_FALSE, modelview);
-    //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     ident_mat(modelview);
     glUniform4f(color, 1.0, 1.0, 0.0, 1.0);
@@ -91,19 +91,6 @@ void update_game(int width, int height) {
     //printf("Fps %d\n", fps);
     fps = old_fps;
 
-    // test accumulative gfps
-    static const float PHYSICS_UPDATE = 1.0f/180.0f * 1000.0f;
-    static float accum = 0.0f;
-    static float vxpos = -1.0;
-    accum += (float)diff.tv_usec / 1000.0f;
-    int i = 0;
-    while (accum > PHYSICS_UPDATE) {
-      vxpos += 0.0033*factor;
-      accum -= PHYSICS_UPDATE;
-      i++;
-    }
-    printf("Nr updates: %d\n", i);
-    drawSprites(vxpos, -1.0);
     glFlush();
 
 }
