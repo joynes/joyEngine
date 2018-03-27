@@ -68,7 +68,7 @@ CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
   // must lock GL context because display link is threaded
   CGLLockContext(static_cast<CGLContextObj>([currentContext CGLContextObj]));
   // Add your drawing codes here
-  drawFrame(WIDTH, HEIGHT);
+  update_game(WIDTH, HEIGHT);
 
   [currentContext flushBuffer];
 

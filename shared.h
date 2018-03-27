@@ -37,9 +37,8 @@ void main() {\
 }\
 ";
 
-float posx = -1.0;
 
-void drawSprites() {
+void drawSprites(float posx, float posy) {
     float modelview[16];
     float orthoview[16];
     float transview[16];
@@ -49,13 +48,12 @@ void drawSprites() {
     scale_mat(modelview, 1.0, 1.0 / new_ratio);
     glUniform4f(color, 0.0, 1.0, 0.0, 1.0);
     glUniformMatrix4fv(MV, 1, GL_FALSE, modelview);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     ident_mat(modelview);
     glUniform4f(color, 1.0, 1.0, 0.0, 1.0);
     float length = 0.1;
-    trans_mat(modelview, posx, -1 + length*new_ratio);
-    posx += 0.01;
+    trans_mat(modelview, sin(posx), posy + length*new_ratio);
     scale_mat(modelview, length, length * new_ratio);
     ident_mat(orthoview);
     scale_mat(orthoview, 1.0, 1.0 / new_ratio);
@@ -64,13 +62,15 @@ void drawSprites() {
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
-void drawFrame(int width, int height) {
+void update_game(int width, int height) {
     glViewport(0, 0, width, height);
     glClearColor(0.0, 0.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    drawSprites();
-    glFlush();
+    
+    static float xpos = -1.0;
+    static float factor = 2.0;
+    drawSprites(xpos, 0.8);
+    xpos += 0.01*factor;
 
     static unsigned fps_accum = 0;
     static unsigned fps_counter = 0;
@@ -88,8 +88,24 @@ void drawFrame(int width, int height) {
       fps_accum = fps_accum - 1000;
       fps_counter = 0;
     }
-    printf("Fps %d\n", fps);
+    //printf("Fps %d\n", fps);
     fps = old_fps;
+
+    // test accumulative gfps
+    static const float PHYSICS_UPDATE = 1.0f/180.0f * 1000.0f;
+    static float accum = 0.0f;
+    static float vxpos = -1.0;
+    accum += (float)diff.tv_usec / 1000.0f;
+    int i = 0;
+    while (accum > PHYSICS_UPDATE) {
+      vxpos += 0.0033*factor;
+      accum -= PHYSICS_UPDATE;
+      i++;
+    }
+    printf("Nr updates: %d\n", i);
+    drawSprites(vxpos, -1.0);
+    glFlush();
+
 }
 
 static void checkGlError(const char* op) {
