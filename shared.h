@@ -1,10 +1,8 @@
 #include <sys/time.h>
 
 #define  LOGI(...)  printf(__VA_ARGS__)
-const unsigned WIDTH = 768;
-const unsigned HEIGHT = 768;
 
-const unsigned RATIO = 3.0; // twice as wide
+const unsigned RATIO = 2.0; // twice as wide
 
 void ident_mat(float mat[]);
 void scale_mat(float mat[], float width, float height);
@@ -15,6 +13,10 @@ void mult_mat(float l[], float r[], float n[]);
 static GLuint spriteShader;
 static GLuint MV;
 static GLuint color;
+
+struct {
+  float fpsfactor;
+} g;
 
 static const char vert_shad[] =
 "\
@@ -38,25 +40,34 @@ void main() {\
 ";
 
 
-void drawSprites(float posx, float posy) {
+void draw_sprites(float posx, float posy, float s_ratio) {
     float modelview[16];
     float orthoview[16];
     float transview[16];
     ident_mat(modelview);
-    float s_ratio = WIDTH / (float)HEIGHT;
     float new_ratio = RATIO / s_ratio;
-    scale_mat(modelview, 1.0, 1.0 / new_ratio);
+
+    if (s_ratio < RATIO)
+      scale_mat(modelview, 1.0, 1.0 / new_ratio);
+    else
+      scale_mat(modelview, new_ratio, 1.0);
+
     glUniform4f(color, 0.0, 1.0, 0.0, 1.0);
     glUniformMatrix4fv(MV, 1, GL_FALSE, modelview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     ident_mat(modelview);
     glUniform4f(color, 1.0, 1.0, 0.0, 1.0);
+
     float length = 0.1;
-    trans_mat(modelview, sin(posx), posy + length*new_ratio);
-    scale_mat(modelview, length, length * new_ratio);
+    trans_mat(modelview, sin(posx), posy + length*RATIO);
+    scale_mat(modelview, length, length * RATIO);
+
     ident_mat(orthoview);
-    scale_mat(orthoview, 1.0, 1.0 / new_ratio);
+    if (s_ratio < RATIO)
+      scale_mat(orthoview, 1.0, 1.0 / new_ratio);
+    else
+      scale_mat(orthoview, new_ratio, 1.0);
     mult_mat(orthoview, modelview, transview);
     glUniformMatrix4fv(MV, 1, GL_FALSE, transview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -69,8 +80,10 @@ void update_game(int width, int height) {
     
     static float xpos = -1.0;
     static float factor = 2.0;
-    drawSprites(xpos, 0.8);
-    xpos += 0.01*factor;
+
+    float s_ratio = width / (float)height;
+    draw_sprites(xpos, -1, s_ratio);
+    xpos += 0.01*factor * g.fpsfactor;
 
     static unsigned fps_accum = 0;
     static unsigned fps_counter = 0;
@@ -173,7 +186,8 @@ GLuint loadProgram(const char *vertexShader, const char *fragmentShader) {
     return programId;
 }
 
-void setup(int frag_offset) {
+void setup(int frag_offset, int fps) {
+    g.fpsfactor = 60.0 / (float) fps;
     const char *glsl_header = "";
     const char *vertex_header = glsl_header;
 
