@@ -4,6 +4,9 @@
 #import <GLKit/GLKit.h>
 #import "shared.h"
 
+const unsigned WIDTH = 640;
+const unsigned HEIGHT = 480;
+
 @interface GameView: NSOpenGLView {
   CVDisplayLinkRef displayLink;
 }

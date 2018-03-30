@@ -2,7 +2,7 @@
 
 #define  LOGI(...)  printf(__VA_ARGS__)
 
-const unsigned RATIO = 2.0; // twice as wide
+const float RATIO = 16.0/9.0; // twice as wide
 
 void ident_mat(float mat[]);
 void scale_mat(float mat[], float width, float height);
@@ -10,15 +10,25 @@ void trans_mat(float mat[], float x, float y);
 void print_mat(float vec[]);
 void mult_mat(float l[], float r[], float n[]);
 
-static GLuint spriteShader;
-static GLuint MV;
-static GLuint color;
+GLuint loadProgram(const char *vertexShader, const char *fragmentShader);
 
 struct {
   float fpsfactor;
 } g;
 
-static const char vert_shad[] =
+static const GLint comp = 2;
+static const GLsizei stride = 2;
+
+///// TEST SHADER /////////
+struct {
+  GLuint id;
+  GLuint MV;
+  GLuint color;
+  GLuint pos;
+} test_shader;
+
+void load_test_shader(int frag_offset) {
+    const char vert_shad[] =
 "\
 attribute vec4 pos;\
 uniform mat4 MV;\
@@ -29,7 +39,7 @@ void main() {\
 }\
 ";
 
-static const char frag_shad[] =
+const char frag_shad[] =
 "\
 precision highp float;\
 uniform vec4 col;\
@@ -38,9 +48,65 @@ void main() {\
     gl_FragColor = vec4(col.r, col.g, abs(y), col.a);\
 }\
 ";
+    test_shader.id = loadProgram(vert_shad, frag_shad + frag_offset);
+    test_shader.pos = glGetAttribLocation(test_shader.id, "pos");
+    test_shader.MV = glGetUniformLocation(test_shader.id, "MV");
+    test_shader.color = glGetUniformLocation(test_shader.id, "col");
+}
 
+void use_test_shader() {
+    glVertexAttribPointer(test_shader.pos, comp, GL_FLOAT, GL_FALSE, (comp + stride)*sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(test_shader.pos);
+    glUseProgram(test_shader.id);
+}
 
-void draw_sprites(float posx, float posy, float s_ratio) {
+///// END TEST SHADER /////////
+
+///// BACKGROUND SHADER /////////
+struct {
+  GLuint id;
+  GLuint MV;
+  GLuint color;
+  GLuint pos;
+} bkgnd_shader;
+
+void load_bkgnd_shader(int frag_offset) {
+    const char vert_shad[] =
+"\
+attribute vec4 pos;\
+uniform mat4 MV;\
+varying vec2 xy;\
+void main() {\
+    gl_Position = MV * pos;\
+    xy = pos.xy;\
+}\
+";
+
+const char frag_shad[] =
+"\
+precision highp float;\
+uniform vec4 col;\
+varying vec2 xy;\
+void main() {\
+    gl_FragColor = vec4(col.r, col.g, col.b, col.a);\
+}\
+";
+    bkgnd_shader.id = loadProgram(vert_shad, frag_shad + frag_offset);
+    bkgnd_shader.pos = glGetAttribLocation(bkgnd_shader.id, "pos");
+    bkgnd_shader.MV = glGetUniformLocation(bkgnd_shader.id, "MV");
+    bkgnd_shader.color = glGetUniformLocation(bkgnd_shader.id, "col");
+}
+
+void use_bkgnd_shader() {
+    glVertexAttribPointer(bkgnd_shader.pos, comp, GL_FLOAT, GL_FALSE, (comp + stride)*sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(bkgnd_shader.pos);
+    glUseProgram(bkgnd_shader.id);
+}
+
+///// END BKGND SHADER /////////
+
+void draw(float posx, float posy, float s_ratio) {
+    use_bkgnd_shader();
     float modelview[16];
     float orthoview[16];
     float transview[16];
@@ -52,12 +118,14 @@ void draw_sprites(float posx, float posy, float s_ratio) {
     else
       scale_mat(modelview, new_ratio, 1.0);
 
-    glUniform4f(color, 0.0, 1.0, 0.0, 1.0);
-    glUniformMatrix4fv(MV, 1, GL_FALSE, modelview);
+    glUniform4f(bkgnd_shader.color, 0.0, 1.0, 0.0, 1.0);
+    glUniformMatrix4fv(bkgnd_shader.MV, 1, GL_FALSE, modelview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
+    use_test_shader();
+
     ident_mat(modelview);
-    glUniform4f(color, 1.0, 1.0, 0.0, 1.0);
+    glUniform4f(test_shader.color, 1.0, 1.0, 0.0, 1.0);
 
     float length = 0.1;
     trans_mat(modelview, sin(posx), posy + length*RATIO);
@@ -69,7 +137,7 @@ void draw_sprites(float posx, float posy, float s_ratio) {
     else
       scale_mat(orthoview, new_ratio, 1.0);
     mult_mat(orthoview, modelview, transview);
-    glUniformMatrix4fv(MV, 1, GL_FALSE, transview);
+    glUniformMatrix4fv(test_shader.MV, 1, GL_FALSE, transview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
@@ -82,7 +150,7 @@ void update_game(int width, int height) {
     static float factor = 2.0;
 
     float s_ratio = width / (float)height;
-    draw_sprites(xpos, -1, s_ratio);
+    draw(xpos, -1, s_ratio);
     xpos += 0.01*factor * g.fpsfactor;
 
     static unsigned fps_accum = 0;
@@ -211,15 +279,8 @@ void setup(int frag_offset, int fps) {
     glBufferData(GL_ARRAY_BUFFER, VERTICES * (QUAD_TEX_SIZE + QUAD_TEX_SIZE) * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
     checkGlError("bind buffer");
 
-    spriteShader = loadProgram(vert_shad, frag_shad + frag_offset);
-    GLuint position = glGetAttribLocation(spriteShader, "pos");
-    MV = glGetUniformLocation(spriteShader, "MV");
-    color = glGetUniformLocation(spriteShader, "col");
-    GLint comp = 2;
-    GLsizei stride = 2;
-    glVertexAttribPointer(position, comp, GL_FLOAT, GL_FALSE, (comp + stride)*sizeof(GLfloat), 0);
-    glEnableVertexAttribArray(position);
-    glUseProgram(spriteShader);
+    load_test_shader(frag_offset);
+    load_bkgnd_shader(frag_offset);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
