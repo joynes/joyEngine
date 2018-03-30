@@ -105,22 +105,29 @@ void use_bkgnd_shader() {
 
 ///// END BKGND SHADER /////////
 
+void draw_bkgnd_block(float modelview[], float orthoview[], float transview[], float x_ratio, float y_ratio) {
+    scale_mat(modelview, x_ratio, y_ratio);
+
+    glUniform4f(bkgnd_shader.color, 0.0, 1.0, 0.0, 1.0);
+    glUniformMatrix4fv(bkgnd_shader.MV, 1, GL_FALSE, modelview);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+}
+
 void draw(float posx, float posy, float s_ratio) {
-    use_bkgnd_shader();
     float modelview[16];
     float orthoview[16];
     float transview[16];
     ident_mat(modelview);
     float new_ratio = RATIO / s_ratio;
-
+    float x_ratio = 1.0;
+    float y_ratio = 1.0;
     if (s_ratio < RATIO)
-      scale_mat(modelview, 1.0, 1.0 / new_ratio);
+      y_ratio = 1.0 / new_ratio;
     else
-      scale_mat(modelview, new_ratio, 1.0);
+      x_ratio = new_ratio;
 
-    glUniform4f(bkgnd_shader.color, 0.0, 1.0, 0.0, 1.0);
-    glUniformMatrix4fv(bkgnd_shader.MV, 1, GL_FALSE, modelview);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    use_bkgnd_shader();
+    draw_bkgnd_block(modelview, orthoview, transview, x_ratio, y_ratio);
 
     use_test_shader();
 
@@ -132,10 +139,7 @@ void draw(float posx, float posy, float s_ratio) {
     scale_mat(modelview, length, length * RATIO);
 
     ident_mat(orthoview);
-    if (s_ratio < RATIO)
-      scale_mat(orthoview, 1.0, 1.0 / new_ratio);
-    else
-      scale_mat(orthoview, new_ratio, 1.0);
+    scale_mat(orthoview, x_ratio, y_ratio);
     mult_mat(orthoview, modelview, transview);
     glUniformMatrix4fv(test_shader.MV, 1, GL_FALSE, transview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
