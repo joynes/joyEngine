@@ -16,6 +16,12 @@ struct {
   float fpsfactor;
 } g;
 
+struct Color {
+  float r;
+  float g;
+  float b;
+};
+
 static const GLint comp = 2;
 static const GLsizei stride = 2;
 
@@ -32,10 +38,10 @@ void load_test_shader(int frag_offset) {
 "\
 attribute vec4 pos;\
 uniform mat4 MV;\
-varying float y;\
+varying vec2 xy;\
 void main() {\
     gl_Position = MV * pos;\
-    y = pos.y;\
+    xy = pos.xy;\
 }\
 ";
 
@@ -43,9 +49,9 @@ const char frag_shad[] =
 "\
 precision highp float;\
 uniform vec4 col;\
-varying float y;\
+varying vec2 xy;\
 void main() {\
-    gl_FragColor = vec4(col.r, col.g, abs(y), col.a);\
+    gl_FragColor = vec4(col.r, col.g, col.b, abs(xy.y*0.5) + abs(xy.x*0.5));\
 }\
 ";
     test_shader.id = loadProgram(vert_shad, frag_shad + frag_offset);
@@ -105,19 +111,7 @@ void use_bkgnd_shader() {
 
 ///// END BKGND SHADER /////////
 
-void draw_bkgnd_block(float modelview[], float orthoview[], float transview[], float x_ratio, float y_ratio) {
-    scale_mat(modelview, x_ratio, y_ratio);
-
-    glUniform4f(bkgnd_shader.color, 0.0, 1.0, 0.0, 1.0);
-    glUniformMatrix4fv(bkgnd_shader.MV, 1, GL_FALSE, modelview);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-}
-
-void draw(float posx, float posy, float s_ratio) {
-    float modelview[16];
-    float orthoview[16];
-    float transview[16];
-    ident_mat(modelview);
+void ortho_draw(float modelview[], GLuint mv, float s_ratio) {
     float new_ratio = RATIO / s_ratio;
     float x_ratio = 1.0;
     float y_ratio = 1.0;
@@ -126,23 +120,55 @@ void draw(float posx, float posy, float s_ratio) {
     else
       x_ratio = new_ratio;
 
-    use_bkgnd_shader();
-    draw_bkgnd_block(modelview, orthoview, transview, x_ratio, y_ratio);
-
-    use_test_shader();
-
-    ident_mat(modelview);
-    glUniform4f(test_shader.color, 1.0, 1.0, 0.0, 1.0);
-
-    float length = 0.1;
-    trans_mat(modelview, sin(posx), posy + length*RATIO);
-    scale_mat(modelview, length, length * RATIO);
-
+    static float orthoview[16];
+    static float transview[16];
     ident_mat(orthoview);
     scale_mat(orthoview, x_ratio, y_ratio);
     mult_mat(orthoview, modelview, transview);
-    glUniformMatrix4fv(test_shader.MV, 1, GL_FALSE, transview);
+    glUniformMatrix4fv(mv, 1, GL_FALSE, transview);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+}
+
+void draw_bkgnd_block(float x, float y, float width, float height, float modelview[], struct Color color, float s_ratio) {
+    ident_mat(modelview);
+    scale_mat(modelview, width/2.0, height/2.0);
+    trans_mat(modelview, x + width/2.0, y + height/2.0);
+
+    glUniform4f(bkgnd_shader.color, color.r, color.g, color.b, 1.0);
+    ortho_draw(modelview, bkgnd_shader.MV, s_ratio);
+}
+
+void draw(float posx, float posy, float s_ratio) {
+    float modelview[16];
+    ident_mat(modelview);
+
+    use_bkgnd_shader();
+    float width = 0.2;
+    float height = 0.2;
+    Color color = {0};
+    for (float y = -1.0; y < (1.0 - height); y += height) {
+      color.r += height / 2.0;
+      color.g = 0.0;
+      for (float x = -1.0; x < (1.0 - height); x += width) {
+        color.g += width / 2.0; 
+        draw_bkgnd_block(x, y, width, height, modelview, color, s_ratio);
+      }
+    }
+
+    use_test_shader();
+    ident_mat(modelview);
+
+    glUniform4f(test_shader.color, 1.0, 1.0, 0.0, 1.0);
+    float length = 0.2;
+    scale_mat(modelview, length/2.0, length/2.0);
+    trans_mat(modelview, sin(posx), posy + length/2.0);
+    ortho_draw(modelview, test_shader.MV, s_ratio);
+
+    use_test_shader();
+    ident_mat(modelview);
+    glUniform4f(test_shader.color, 0.0, 1.0, 0.0, 1.0);
+    glUniformMatrix4fv(test_shader.MV, 1, GL_FALSE, modelview);
+    //ortho_draw(modelview, test_shader.MV, s_ratio);
 }
 
 void update_game(int width, int height) {
