@@ -2,6 +2,7 @@
 #import <OpenGL/OpenGL.h>
 #import <OpenGL/gl3.h>
 #import <GLKit/GLKit.h>
+#import <Carbon/Carbon.h>
 #import "shared.h"
 
 const unsigned WIDTH = 640;
@@ -13,6 +14,23 @@ const unsigned HEIGHT = 480;
 @end
 
 @implementation GameView
+
+- (void)keyDown:(NSEvent *)theEvent {
+
+  if ([theEvent keyCode] == kVK_ANSI_W)
+    move_up();
+  else if ([theEvent keyCode] == kVK_ANSI_S)
+    move_down();
+  else if ([theEvent keyCode] == kVK_ANSI_A)
+    move_left();
+  else if ([theEvent keyCode] == kVK_ANSI_D)
+    move_right();
+  [super keyDown:theEvent];
+}
+
+- (BOOL)acceptsFirstResponder {
+    return YES;
+}
 - (void)prepareOpenGL {
   
   // Synchronize buffer swaps with vertical refresh rate

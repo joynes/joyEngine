@@ -138,7 +138,7 @@ void draw_bkgnd_block(float x, float y, float width, float height, float modelvi
     ortho_draw(modelview, bkgnd_shader.MV, s_ratio);
 }
 
-void draw(float posx, float posy, float s_ratio) {
+void draw(float posx, float posy, float length, float s_ratio) {
     float modelview[16];
     ident_mat(modelview);
 
@@ -159,9 +159,8 @@ void draw(float posx, float posy, float s_ratio) {
     ident_mat(modelview);
 
     glUniform4f(test_shader.color, 1.0, 1.0, 0.0, 1.0);
-    float length = 0.2;
     scale_mat(modelview, length/2.0, length/2.0);
-    trans_mat(modelview, sin(posx), posy + length/2.0);
+    trans_mat(modelview, posx, posy);
     ortho_draw(modelview, test_shader.MV, s_ratio);
 
     use_test_shader();
@@ -171,17 +170,33 @@ void draw(float posx, float posy, float s_ratio) {
     //ortho_draw(modelview, test_shader.MV, s_ratio);
 }
 
+static float xpos = -1.0;
+static float ypos = -1.0;
+static float length = 0.2;
+
+void move_up() {
+  ypos += length;
+}
+void move_down() {
+  ypos -= length;
+}
+void move_right() {
+  xpos += length;
+}
+void move_left() {
+  xpos -= length;
+}
+
 void update_game(int width, int height) {
     glViewport(0, 0, width, height);
     glClearColor(0.0, 0.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    static float xpos = -1.0;
     static float factor = 2.0;
 
     float s_ratio = width / (float)height;
-    draw(xpos, -1, s_ratio);
-    xpos += 0.01*factor * g.fpsfactor;
+    draw(xpos + length/2.0, ypos + length/2.0, length, s_ratio);
+    //xpos += 0.01*factor * g.fpsfactor;
 
     static unsigned fps_accum = 0;
     static unsigned fps_counter = 0;
