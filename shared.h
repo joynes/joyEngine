@@ -226,7 +226,6 @@ void update_game(int width, int height) {
       }
     }
     draw(xpos + length/2.0, ypos + length/2.0, length, s_ratio);
-    //xpos += 0.01*factor * g.fpsfactor;
 
     static unsigned fps_accum = 0;
     static unsigned fps_counter = 0;
