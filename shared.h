@@ -173,18 +173,38 @@ void draw(float posx, float posy, float length, float s_ratio) {
 static float xpos = -1.0;
 static float ypos = -1.0;
 static float length = 0.2;
+static bool moving = false;
+static int nrmoves = 0;
+static float y_move = 0.0;
+static float x_move = 0.0;
 
 void move_up() {
-  ypos += length;
+  if (!moving) {
+    y_move = 0.02;
+    x_move = 0.0;
+    moving = true;
+  }
 }
 void move_down() {
-  ypos -= length;
+  if (!moving) {
+    y_move = -0.02;
+    x_move = 0.0;
+    moving = true;
+  }
 }
 void move_right() {
-  xpos += length;
+  if (!moving) {
+    y_move = 0.0;
+    x_move = 0.02;
+    moving = true;
+  }
 }
 void move_left() {
-  xpos -= length;
+  if (!moving) {
+    y_move = 0.0;
+    x_move = -0.02;
+    moving = true;
+  }
 }
 
 void update_game(int width, int height) {
@@ -195,6 +215,16 @@ void update_game(int width, int height) {
     static float factor = 2.0;
 
     float s_ratio = width / (float)height;
+
+    if (moving) {
+      ypos += y_move;
+      xpos += x_move;
+      nrmoves++;
+      if (nrmoves >= 10) {
+        moving = false;
+        nrmoves = 0;
+      }
+    }
     draw(xpos + length/2.0, ypos + length/2.0, length, s_ratio);
     //xpos += 0.01*factor * g.fpsfactor;
 
