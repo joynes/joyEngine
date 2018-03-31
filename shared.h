@@ -145,7 +145,7 @@ void draw(float posx, float posy, float length, float s_ratio) {
     use_bkgnd_shader();
     float width = 0.2;
     float height = 0.2;
-    Color color = {0};
+    struct Color color = {0};
     for (float y = -1.0; y < (1.0 - height); y += height) {
       color.r += height / 2.0;
       color.g = 0.0;
