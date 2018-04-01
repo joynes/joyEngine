@@ -39,13 +39,41 @@
     if (!self.context) {
         NSLog(@"Failed to create ES context");
     }
-    
+
     GLKView *view = (GLKView *)self.view;
     view.context = self.context;
     view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
-    
+
     [EAGLContext setCurrentContext:self.context];
-    setup(0, UIScreen.mainScreen.maximumFramesPerSecond);
+    setup(0, (int)UIScreen.mainScreen.maximumFramesPerSecond);
+
+    UISwipeGestureRecognizer *swipeRight = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
+    [self.view addGestureRecognizer:swipeRight];
+
+    UISwipeGestureRecognizer *swipeLeft = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
+    [swipeLeft setDirection:(UISwipeGestureRecognizerDirectionLeft)];
+    [self.view addGestureRecognizer:swipeLeft];
+
+    UISwipeGestureRecognizer *swipeUp = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
+    [swipeUp setDirection:(UISwipeGestureRecognizerDirectionUp)];
+    [self.view addGestureRecognizer:swipeUp];
+
+    UISwipeGestureRecognizer *swipeDown = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
+    [swipeDown setDirection:(UISwipeGestureRecognizerDirectionDown)];
+    [self.view addGestureRecognizer:swipeDown];
+
+}
+
+-(void)handleSwipeFrom:(UISwipeGestureRecognizer *)sender {
+    if (sender.direction == UISwipeGestureRecognizerDirectionLeft) {
+        move_left();
+    } else if (sender.direction == UISwipeGestureRecognizerDirectionRight) {
+        move_right();
+    } else if (sender.direction == UISwipeGestureRecognizerDirectionUp) {
+        move_up();
+    } else if (sender.direction == UISwipeGestureRecognizerDirectionDown) {
+        move_down();
+    }
 }
 
 - (void)dealloc
